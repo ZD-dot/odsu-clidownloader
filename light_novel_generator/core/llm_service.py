@@ -15,7 +15,7 @@ genai.configure(api_key=api_key)
 # Initialize the generative model
 # For text generation, 'gemini-pro' is a common choice.
 # Safety settings can be adjusted if needed, but defaults are often fine to start.
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash-latest') # Updated model
 
 import re # Added for re.findall in test block
 
@@ -244,8 +244,8 @@ if __name__ == '__main__':
         print("INFO: GEMINI_API_KEY found. Attempting API calls.")
         try:
             genai.configure(api_key=current_api_key)
-            model = genai.GenerativeModel('gemini-pro')
-            print("Gemini model re-initialized.")
+            model = genai.GenerativeModel('gemini-1.5-flash-latest') # Updated model
+            print("Gemini model re-initialized with gemini-1.5-flash-latest.")
             api_key_present_and_real = True
         except Exception as e: print(f"Error re-initializing Gemini model: {e}")
 

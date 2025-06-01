@@ -1,176 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select a Title - Light Novel Generator</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1 { color: #5a5a5a; }
-        .title-list { list-style: none; padding: 0; }
-        .title-list li { margin-bottom: 10px; padding: 10px; background-color: #e9ecef; border-radius: 4px; }
-        .title-list li:hover { background-color: #ced4da; }
-        .button {
-            background-color: #007bff; color: white; padding: 10px 15px;
-            border: none; border-radius: 4px; cursor: pointer; text-decoration: none;
-            font-size: 16px; margin-top: 5px;
-        }
-        .button:hover { background-color: #0056b3; }
-        .button-refresh { background-color: #28a745; }
-        .button-refresh:hover { background-color: #1e7e34; }
-        .flash-messages { list-style: none; padding: 0; }
-        .flash-messages .danger { background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom:10px;}
-        .flash-messages .warning { background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;}
-        .flash-messages .success { background-color: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom:10px;}
+{% extends 'base.html' %}
 
-       /* Loading Indicator Styles */
-       .loading-overlay {
-           position: fixed; /* Cover the whole screen */
-           top: 0;
-           left: 0;
-           width: 100%;
-           height: 100%;
-           background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent white background */
-           z-index: 1000; /* Ensure it's on top */
-           display: none; /* Hidden by default */
-           justify-content: center;
-           align-items: center;
-           text-align: center;
-       }
-       .loading-overlay .loading-text {
-           font-size: 1.5em;
-           font-weight: bold;
-           color: #333;
-           padding: 20px;
-           background-color: #fff;
-           border-radius: 8px;
-           box-shadow: 0 0 15px rgba(0,0,0,0.2);
-       }
-       /* Basic spinner */
-        .spinner {
-            border: 4px solid #f3f3f3; /* Light grey */
-            border-top: 4px solid #3498db; /* Blue */
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
-    <div class="loading-overlay" id="loadingOverlay">
-       <div class="loading-text">
-           <div class="spinner"></div>
-           Processing your request... Please wait.
-       </div>
-    </div>
-    <div class="container">
-        <h1>Choose Your Light Novel Title</h1>
+{% block title %}Select a Title - Light Novel Generator{% endblock %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <ul class="flash-messages">
-            {% for category, message in messages %}
-              <li class="{{ category }}">{{ message }}</li>
+{% block header_title %}Choose Your Light Novel Title{% endblock %}
+
+{% block content %}
+{% if titles %}
+    <p>Select one of the following titles for your '{{ session.get("GENRE", "highschool yuri") }}' novel:</p>
+    <form action="{{ url_for('main.select_title') }}" method="post">
+        <ul class="item-list">
+            {% for title in titles %}
+                <li>
+                    <label>
+                        <input type="radio" name="title" value="{{ title }}" required>
+                        {{ title }}
+                    </label>
+                </li>
             {% endfor %}
-            </ul>
-          {% endif %}
-        {% endwith %}
-
-        {% if titles %}
-            <p>Select one of the following titles for your '{{ session.get("GENRE", "highschool yuri") }}' novel:</p>
-            <form action="{{ url_for('main.select_title') }}" method="post">
-                <ul class="title-list">
-                    {% for title in titles %}
-                        <li>
-                            <label style="display: block; cursor: pointer;">
-                                <input type="radio" name="title" value="{{ title }}" required>
-                                {{ title }}
-                            </label>
-                        </li>
-                    {% endfor %}
-                </ul>
-                <button type="submit" class="button">Select This Title</button>
-            </form>
-            <hr>
-            <a href="{{ url_for('main.generate_title_options') }}" class="button button-refresh">Refresh Titles</a>
-        {% else %}
-            <p>No titles were generated. This might be due to an API error.</p>
-            <a href="{{ url_for('main.generate_title_options') }}" class="button button-refresh">Try Generating Titles Again</a>
-        {% endif %}
-        <p style="margin-top: 20px;"><a href="{{ url_for('main.index') }}" class="button">Back to Start</a></p>
-    </div>
-
-    <script>
-       function showLoading() {
-           const overlay = document.getElementById('loadingOverlay');
-           if (overlay) {
-               overlay.style.display = 'flex'; // Use flex to center content
-           }
-       }
-
-       document.querySelectorAll('form').forEach(form => {
-           const action = form.getAttribute('action');
-           const longRunningActions = [
-               '/start',
-               '/select_title',
-               '/confirm_outline',
-               '/initiate_final_review',
-               '/finalize_story'
-           ];
-
-           let needsLoadingIndicator = false;
-           if (action) {
-                try {
-                    const url = new URL(action, window.location.origin);
-                    if (longRunningActions.includes(url.pathname)) {
-                        needsLoadingIndicator = true;
-                    }
-                } catch (e) {
-                    if (longRunningActions.some(path => action.includes(path))) {
-                         needsLoadingIndicator = true;
-                    }
-                }
-           }
-
-           if (needsLoadingIndicator) {
-               form.addEventListener('submit', function() {
-                   setTimeout(showLoading, 50);
-               });
-           }
-       });
-
-        document.querySelectorAll('a.button').forEach(anchor => {
-            const href = anchor.getAttribute('href');
-            const longRunningGetRoutes = [
-                '/generate_titles',
-            ];
-            let needsLoadingIndicatorForAnchor = false;
-            if (href) {
-                try {
-                    const url = new URL(href, window.location.origin);
-                     if (longRunningGetRoutes.includes(url.pathname)) {
-                        needsLoadingIndicatorForAnchor = true;
-                    }
-                } catch (e) {
-                     if (longRunningGetRoutes.some(path => href.includes(path))) {
-                         needsLoadingIndicatorForAnchor = true;
-                    }
-                }
-            }
-
-            if (needsLoadingIndicatorForAnchor) {
-                anchor.addEventListener('click', function() {
-                    setTimeout(showLoading, 50);
-                });
-            }
-        });
-   </script>
-</body>
-</html>
+        </ul>
+        <button type="submit" class="button">Select This Title</button>
+    </form>
+    <hr style="margin: 20px 0;">
+    <a href="{{ url_for('main.generate_title_options') }}" class="button button-refresh">Refresh Titles</a>
+{% else %}
+    <p>No titles were generated. This might be due to an API error.</p>
+    <a href="{{ url_for('main.generate_title_options') }}" class="button button-refresh">Try Generating Titles Again</a>
+{% endif %}
+<p style="margin-top: 20px;"><a href="{{ url_for('main.index') }}" class="button button-back">Back to Start</a></p>
+{% endblock %}

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI Light Novel Generator is a web-based application designed to automatically create complete light novels in the "highschool yuri" genre. It leverages the Gemini Large Language Model (LLM) through a chained, multi-step process to generate everything from titles and outlines to full chapter text, including dialogue enhancement and a final review. The application aims for full automation of the narrative creation process, with user interaction primarily for selection, customization, and approval.
+The AI Light Novel Generator is a web-based application designed to automatically create complete light novels in the "highschool yuri" genre. It leverages the `gemini-1.5-flash-latest` Large Language Model (LLM) through a chained, multi-step process to generate everything from titles and outlines to full chapter text, including dialogue enhancement and a final review. The application aims for full automation of the narrative creation process, with user interaction primarily for selection, customization, and approval.
 
 ## Features
 
@@ -23,8 +23,16 @@ The AI Light Novel Generator is a web-based application designed to automaticall
 ```
 light_novel_generator/
 ├── app/                    # Flask application package
-│   ├── static/             # Static files (CSS, JS - currently minimal)
+│   ├── static/             # Static files
+│   │   └── css/
+│   │       └── style.css   # Shared stylesheet
 │   ├── templates/          # HTML templates
+│   │   ├── base.html       # Base template for inheritance
+│   │   ├── index.html
+│   │   ├── title_selection.html
+│   │   ├── outline_display.html
+│   │   ├── story_display.html
+│   │   └── final_review_display.html
 │   ├── __init__.py         # Application factory
 │   └── routes.py           # Web application routes and main UI logic
 ├── core/                   # Core LLM interaction and business logic
@@ -97,7 +105,7 @@ The Proof-of-Concept script allows testing the core LLM generation chain without
 
 ## Key Files & Logic Overview
 
--   **`core/llm_service.py`**: This is the heart of the AI generation. It contains:
+-   **`core/llm_service.py`**: This is the heart of the AI generation. It now utilizes the `gemini-1.5-flash-latest` model for all LLM interactions. It contains:
     -   `generate_titles()`: Creates potential novel titles.
     -   `generate_outline()`: Builds a story outline. Now influenced by the user's 'Story Length' selection (short, medium, long) which adjusts the target number of chapters.
     -   `generate_chapter_text()`: Writes full chapter content. Now actively uses 'Level of Detail' (low, medium, high) and 'Narrative Pacing' (slow, medium, fast) selections to guide the LLM's writing style for each chapter.
@@ -105,6 +113,8 @@ The Proof-of-Concept script allows testing the core LLM generation chain without
     -   `final_review_story()`: Performs a holistic review. Prompts refined for more reliable status codes and content.
 -   **`core/output_formatter.py`**: Handles the conversion of the generated story into a PDF document using the `fpdf2` library.
 -   **`app/routes.py`**: Defines all web page routes and manages the user's journey through the novel generation process. It calls functions from `llm_service.py` and `output_formatter.py` based on user interactions and session state.
+-   **`app/templates/base.html`**: Provides the common HTML structure, including shared CSS, JavaScript for loading indicators, and overall page layout for all user-facing pages through template inheritance.
+-   **`app/static/css/style.css`**: Contains all the CSS rules for styling the web interface, ensuring a consistent look and feel.
 -   **`run.py`**: The entry point to start the Flask web application.
 -   **`scripts/run_poc.py`**: Useful for developers to quickly test the LLM chain and prompt effectiveness.
 

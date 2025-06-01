@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Light Novel Generator{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-text">
+            <div class="spinner"></div>
+            Processing your request... Please wait.
+        </div>
+    </div>
+
+    <div class="container">
+        {% block page_header %}
+        <h1>{% block header_title %}{% endblock %}</h1>
+        {% endblock %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flash-messages">
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        function showLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+            }
+        }
+
+        document.querySelectorAll('form').forEach(form => {
+            const action = form.getAttribute('action');
+            const longRunningActions = [
+                '/start',
+                '/select_title',
+                '/confirm_outline',
+                '/initiate_final_review',
+                '/finalize_story'
+            ];
+            let needsLoadingIndicator = false;
+            if (action) {
+                try {
+                    const url = new URL(action, window.location.origin);
+                    if (longRunningActions.includes(url.pathname)) {
+                        needsLoadingIndicator = true;
+                    }
+                } catch (e) {
+                    if (longRunningActions.some(path => action.includes(path))) {
+                         needsLoadingIndicator = true;
+                    }
+                }
+            }
+            if (needsLoadingIndicator) {
+                form.addEventListener('submit', function() { setTimeout(showLoading, 50); });
+            }
+        });
+
+        document.querySelectorAll('a.button').forEach(anchor => {
+            const href = anchor.getAttribute('href');
+            const longRunningGetRoutes = ['/generate_titles'];
+            let needsLoadingIndicatorForAnchor = false;
+            if (href) {
+                try {
+                    const url = new URL(href, window.location.origin);
+                     if (longRunningGetRoutes.includes(url.pathname)) {
+                        needsLoadingIndicatorForAnchor = true;
+                    }
+                } catch (e) {
+                     if (longRunningGetRoutes.some(path => href.includes(path))) {
+                         needsLoadingIndicatorForAnchor = true;
+                    }
+                }
+            }
+            if (needsLoadingIndicatorForAnchor) {
+                anchor.addEventListener('click', function() { setTimeout(showLoading, 50); });
+            }
+        });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

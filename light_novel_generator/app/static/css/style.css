@@ -1,0 +1,285 @@
+/* General Body Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa; /* Light grey background */
+    color: #343a40; /* Darker grey text */
+    line-height: 1.6;
+}
+
+/* Main Container */
+.container {
+    width: 80%;
+    max-width: 960px; /* Max width for larger screens */
+    margin: 30px auto; /* Centered with space */
+    background-color: #ffffff; /* White background for content */
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Softer shadow */
+}
+
+/* Headings */
+h1, h2, h3 {
+    color: #495057; /* Slightly lighter than body text */
+    margin-bottom: 0.75em;
+}
+h1 {
+    font-size: 2.2em;
+    border-bottom: 2px solid #e9ecef; /* Light separator */
+    padding-bottom: 0.3em;
+    margin-bottom: 1em;
+}
+h2 {
+    font-size: 1.8em;
+    margin-top: 1.5em; /* More space above h2 */
+}
+h3 {
+    font-size: 1.4em;
+}
+
+/* Paragraphs and Text */
+p {
+    margin-bottom: 1em;
+}
+pre {
+    background-color: #e9ecef;
+    padding: 15px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border: 1px solid #dee2e6;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.95em;
+}
+
+/* Buttons */
+.button, button[type="submit"] {
+    background-color: #007bff; /* Primary blue */
+    color: white;
+    padding: 12px 20px; /* Slightly larger padding */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 1em;
+    transition: background-color 0.2s ease-in-out;
+    display: inline-block; /* Align buttons nicely */
+    margin-top: 10px;
+    margin-right: 10px;
+}
+.button:hover, button[type="submit"]:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+.button-refresh {
+    background-color: #28a745; /* Green for refresh/positive action */
+}
+.button-refresh:hover {
+    background-color: #1e7e34;
+}
+.button-back {
+    background-color: #6c757d; /* Grey for back/neutral action */
+}
+.button-back:hover {
+    background-color: #545b62;
+}
+.button-danger {
+    background-color: #dc3545; /* Red for danger/restart */
+}
+.button-danger:hover {
+    background-color: #b02a37;
+}
+.button-warning {
+    background-color: #ffc107; /* Yellow for warning/special action */
+    color: #212529; /* Dark text on yellow for contrast */
+}
+.button-warning:hover {
+    background-color: #d39e00;
+}
+
+
+/* Forms */
+.options-group {
+    margin-bottom: 25px;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    background-color: #f8f9fa; /* Light background for options */
+}
+.options-group h2 {
+    margin-top: 0; /* Remove extra top margin for h2 in options */
+    font-size: 1.5em;
+    border-bottom: 1px solid #ced4da;
+    padding-bottom: 0.5em;
+}
+.options-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #495057;
+}
+.options-group select,
+.options-group input[type="number"],
+.options-group input[type="text"] { /* Assuming text inputs might be used */
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    box-sizing: border-box;
+    font-size: 1em;
+}
+.options-group select:focus,
+.options-group input[type="number"]:focus,
+.options-group input[type="text"]:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Lists (e.g., for title selection) */
+.item-list {
+    list-style: none;
+    padding: 0;
+}
+.item-list li {
+    margin-bottom: 10px;
+    padding: 12px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+.item-list li:hover {
+    background-color: #d1d9e0;
+}
+.item-list label { /* For radio buttons inside list items */
+    display: block;
+    cursor: pointer;
+    font-weight: normal; /* Override potential bold from .options-group label */
+}
+.item-list input[type="radio"] {
+    margin-right: 8px;
+}
+
+
+/* Flash Messages */
+.flash-messages {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+.flash-messages li {
+    padding: 12px 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+    border: 1px solid transparent;
+}
+.flash-messages .danger {
+    background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;
+}
+.flash-messages .warning {
+    background-color: #fff3cd; color: #856404; border-color: #ffeeba;
+}
+.flash-messages .success {
+    background-color: #d4edda; color: #155724; border-color: #c3e6cb;
+}
+.flash-messages .info {
+    background-color: #cce5ff; color: #004085; border-color: #b8daff;
+}
+
+/* Story Display Specifics */
+.story-content .chapter {
+    margin-bottom: 30px;
+}
+.story-content .chapter h2 { /* Chapter titles */
+    font-size: 1.6em;
+    color: #007bff; /* Blue chapter titles */
+    border-bottom: 1px solid #b8daff;
+    padding-bottom: 0.2em;
+}
+.story-content .chapter-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 1em;
+    color: #212529; /* Slightly darker than default body for readability */
+}
+
+/* Final Review Display Specifics */
+.review-section {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+.review-section h2 { /* "Review Outcome:" */
+    font-size: 1.5em;
+    margin-top: 0;
+}
+.review-section h3 { /* Chapter titles within revised story */
+    font-size: 1.3em;
+    color: #28a745; /* Green for revised chapter titles */
+}
+
+
+/* Loading Overlay (already present in templates, but good to have in main CSS if base.html is used) */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Darker overlay for more contrast */
+    z-index: 10000; /* Very high z-index */
+    display: none;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+.loading-overlay .loading-text {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+    padding: 30px; /* More padding */
+    background-color: #fff;
+    border-radius: 10px; /* More rounded */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+.spinner {
+    border: 5px solid #f3f3f3; /* Light grey */
+    border-top: 5px solid #007bff; /* Primary blue spinner */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px auto; /* More margin */
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments (very basic) */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 20px;
+    }
+    h1 {
+        font-size: 1.8em;
+    }
+    h2 {
+        font-size: 1.5em;
+    }
+    .button, button[type="submit"] {
+        padding: 10px 15px;
+        font-size: 0.95em;
+        width: 100%; /* Stack buttons on smaller screens */
+        margin-right: 0;
+        margin-bottom: 10px; /* Space between stacked buttons */
+    }
+    .button:last-child, button[type="submit"]:last-child {
+        margin-bottom: 0;
+    }
+}

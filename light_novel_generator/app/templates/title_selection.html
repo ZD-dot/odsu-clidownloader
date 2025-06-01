@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select a Title - Light Novel Generator</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #5a5a5a; }
+        .title-list { list-style: none; padding: 0; }
+        .title-list li { margin-bottom: 10px; padding: 10px; background-color: #e9ecef; border-radius: 4px; }
+        .title-list li:hover { background-color: #ced4da; }
+        .button {
+            background-color: #007bff; color: white; padding: 10px 15px;
+            border: none; border-radius: 4px; cursor: pointer; text-decoration: none;
+            font-size: 16px; margin-top: 5px;
+        }
+        .button:hover { background-color: #0056b3; }
+        .button-refresh { background-color: #28a745; }
+        .button-refresh:hover { background-color: #1e7e34; }
+        .flash-messages { list-style: none; padding: 0; }
+        .flash-messages .danger { background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom:10px;}
+        .flash-messages .warning { background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;}
+        .flash-messages .success { background-color: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom:10px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Choose Your Light Novel Title</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flash-messages">
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        {% if titles %}
+            <p>Select one of the following titles for your '{{ session.get("GENRE", "highschool yuri") }}' novel:</p>
+            <form action="{{ url_for('main.select_title') }}" method="post">
+                <ul class="title-list">
+                    {% for title in titles %}
+                        <li>
+                            <label style="display: block; cursor: pointer;">
+                                <input type="radio" name="title" value="{{ title }}" required>
+                                {{ title }}
+                            </label>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <button type="submit" class="button">Select This Title</button>
+            </form>
+            <hr>
+            <a href="{{ url_for('main.generate_title_options') }}" class="button button-refresh">Refresh Titles</a>
+        {% else %}
+            <p>No titles were generated. This might be due to an API error.</p>
+            <a href="{{ url_for('main.generate_title_options') }}" class="button button-refresh">Try Generating Titles Again</a>
+        {% endif %}
+        <p style="margin-top: 20px;"><a href="{{ url_for('main.index') }}" class="button">Back to Start</a></p>
+    </div>
+</body>
+</html>

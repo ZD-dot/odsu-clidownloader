@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light Novel Generator</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #5a5a5a; }
+        .button {
+            background-color: #007bff; color: white; padding: 10px 15px;
+            border: none; border-radius: 4px; cursor: pointer; text-decoration: none;
+            font-size: 16px;
+        }
+        .button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <ul style="list-style: none; padding: 0;">
+                {% for category, message in messages %}
+                  <li style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom:10px;" class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+              {% endif %}
+            {% endwith %}
+        <h1>Welcome to the AI Light Novel Generator</h1>
+        <p>Ready to create your own highschool yuri light novel?</p>
+
+        {% if session.status %}
+            <p>Current status: <strong>{{ session.status }}</strong></p>
+            {% if session.status == 'started' %}
+                <p>Next step would be title generation!</p>
+                <form action="{{ url_for('main.start_generation') }}" method="post" style="display: inline;">
+                    <button type="submit" class="button">Restart Generation Process</button>
+                </form>
+            {% endif %}
+        {% else %}
+            <form action="{{ url_for('main.start_generation') }}" method="post">
+                <button type="submit" class="button">Start Generating Novel</button>
+            </form>
+        {% endif %}
+    </div>
+</body>
+</html>

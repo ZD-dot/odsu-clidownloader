@@ -107,89 +107,189 @@ def generate_chapter_text(title: str, genre: str, chapter_outline: str, overall_
         print(error_message) # Also print for server-side logs
         return error_message
 
+
+def enhance_dialogue(chapter_text: str, genre: str, characters_summary: str = "Two main female characters typical of a highschool yuri story.", overall_story_summary: str = "") -> str:
+    """
+    Reviews and enhances the dialogue in a piece of text using the Gemini API.
+
+    Args:
+        chapter_text (str): The text of the chapter (or scene) containing dialogue.
+        genre (str): The genre of the light novel.
+        characters_summary (str): Brief summary of the main characters involved in dialogues.
+        overall_story_summary (str): Brief summary of the overall story for context.
+
+    Returns:
+        str: The chapter text with potentially enhanced dialogue.
+    """
+    prompt = (
+        f"You are an editor specializing in {genre} light novels. Review the following chapter text. "
+        f"Your task is to enhance the dialogue to make it more natural, engaging, and consistent with the characters and genre. "
+        f"Do not rewrite the entire chapter, focus primarily on improving dialogue. Ensure the dialogue reflects a realistic highschool setting. "
+        f"If the dialogue is already good, you can make minimal changes or affirm its quality. "
+        f"Maintain the existing plot and scene structure.\n\n"
+        f"Genre: {genre}\n"
+        f"Character Context: {characters_summary}\n"
+        f"Overall Story Context: {overall_story_summary if overall_story_summary else 'General highschool romance.'}\n\n"
+        f"--- Chapter Text to Review ---\n"
+        f"{chapter_text}\n"
+        f"--- End of Chapter Text ---\n\n"
+        f"Provide the full chapter text with your dialogue enhancements incorporated. Do not add any commentary before or after the revised chapter text."
+    )
+
+    try:
+        # Assuming 'model' is already initialized (e.g., model = genai.GenerativeModel('gemini-pro'))
+        response = model.generate_content(prompt)
+        if response.parts:
+            return response.text.strip()
+        else:
+            print(f"Warning: Dialogue enhancement for chapter produced no content. Returning original. Chapter start: {chapter_text[:100]}...")
+            return chapter_text # Return original if no enhancement or error
+    except Exception as e:
+        print(f"An error occurred during dialogue enhancement: {e}. Returning original text.")
+        return chapter_text # Return original text in case of error
+
+
+def final_review_story(full_story_text: str, title: str, genre: str, characters_summary: str = "Two main female characters in a highschool yuri story.", overall_story_summary: str = "") -> tuple[str, str]:
+    """
+    Performs a final review of the entire generated narrative using the Gemini API.
+    It can suggest improvements or provide a revised version.
+
+    Args:
+        full_story_text (str): The entire generated novel text, typically concatenated chapters.
+        title (str): The title of the novel.
+        genre (str): The genre of the novel.
+        characters_summary (str): Brief summary of main characters.
+        overall_story_summary (str): Brief summary of the overall story.
+
+    Returns:
+        tuple[str, str]: A tuple containing:
+                         - review_status (str): "approved", "revised", "critique_provided".
+                         - content (str): Either the revised story, critique notes, or the original story if approved as is.
+    """
+    prompt = (
+        f"You are a senior editor for {genre} light novels. Perform a final review of the following complete draft for the novel titled '{title}'.\n"
+        f"Focus on overall coherence, narrative consistency (plot, character arcs), pacing, thematic integrity, and reader engagement. "
+        f"The story should be suitable for the {genre} genre and its intended audience.\n\n"
+        f"Character Context: {characters_summary}\n"
+        f"Overall Story Context: {overall_story_summary if overall_story_summary else 'General highschool romance.'}\n\n"
+        f"--- Full Story Draft ---\n"
+        f"{full_story_text}\n"
+        f"--- End of Story Draft ---\n\n"
+        f"Reviewer instructions:\n"
+        f"1. If the story is excellent and requires no significant changes, respond with a short approval message starting with 'STATUS: APPROVED'. Example: 'STATUS: APPROVED. This story is well-written and coherent.'\n"
+        f"2. If there are minor issues that can be fixed with light edits or suggestions you can provide as notes, respond with 'STATUS: CRITIQUE_PROVIDED' followed by your specific, actionable suggestions. Do not return the full story in this case, only your critique.\n"
+        f"3. If the story has significant issues requiring substantial revisions to plot, character, or pacing, and you can provide an improved version, respond with 'STATUS: REVISED' followed by the *complete revised story text*. Ensure the revised story maintains the original chapter structure as much as possible if it was clear.\n"
+        f"Begin your response *only* with 'STATUS: <status_code>' followed by the content as described."
+    )
+
+    try:
+        response = model.generate_content(prompt) # Assuming 'model' is initialized
+        response_text = response.text.strip()
+
+        if response_text.startswith("STATUS: REVISED"):
+            return "revised", response_text[len("STATUS: REVISED"):].strip()
+        elif response_text.startswith("STATUS: APPROVED"):
+            return "approved", response_text[len("STATUS: APPROVED"):].strip() # Return the approval message
+        elif response_text.startswith("STATUS: CRITIQUE_PROVIDED"):
+            return "critique_provided", response_text[len("STATUS: CRITIQUE_PROVIDED"):].strip() # Return critique
+        else:
+            # Fallback if status is missing or unexpected
+            print(f"Warning: Final review returned unexpected format. Treating as critique. Response: {response_text[:200]}...")
+            return "critique_provided", f"Reviewer output (unexpected format):\n{response_text}"
+
+    except Exception as e:
+        print(f"An error occurred during final story review: {e}")
+        return "error", f"Failed to review story due to an error: {e}. Original story is preserved."
+
 if __name__ == '__main__':
     print("Initializing test for llm_service.py...")
 
+    # --- Environment Setup ---
     if not os.path.exists(".env") and not os.getenv("GEMINI_API_KEY"):
-        print("Creating a dummy .env file for subtask execution (no API key).")
-        with open(".env", "w") as f:
-            f.write("GEMINI_API_KEY=dummy_key_for_subtask_no_api_call\n")
+        print("Creating a dummy .env file for subtask execution.")
+        with open(".env", "w") as f: f.write("GEMINI_API_KEY=dummy_key_for_subtask_no_api_call\n")
         load_dotenv(override=True)
-
     current_api_key = os.getenv("GEMINI_API_KEY")
     api_key_present_and_real = False
-    if not current_api_key:
-        print("CRITICAL: GEMINI_API_KEY is not set. Please create a .env file in 'light_novel_generator' directory.")
-    elif current_api_key == "dummy_key_for_subtask_no_api_call":
-        print("INFO: Using a dummy API key. Actual API calls will be skipped or will use a placeholder.")
+    if not current_api_key or current_api_key == "dummy_key_for_subtask_no_api_call":
+        print("INFO: GEMINI_API_KEY not found or is dummy. Actual API calls will be skipped/placeholders used.")
     else:
         print("INFO: GEMINI_API_KEY found. Attempting API calls.")
         try:
             genai.configure(api_key=current_api_key)
             model = genai.GenerativeModel('gemini-pro')
-            print("Gemini model re-initialized with loaded API key.")
+            print("Gemini model re-initialized.")
             api_key_present_and_real = True
-        except Exception as e:
-            print(f"Error re-initializing Gemini model with API key: {e}")
+        except Exception as e: print(f"Error re-initializing Gemini model: {e}")
 
-    # --- Test Title Generation ---
+    # --- Test Data ---
+    test_title = "Echoes of Tomorrow"
+    test_genre = "highschool yuri"
+    test_char_summary = "Kaori is quiet and introspective. Natsumi is energetic and outgoing."
+    test_story_summary = f"A {test_genre} novel about Kaori and Natsumi discovering their feelings amidst club activities."
+
+    # Simulate a short story for testing
+    chapter1_text = "Chapter 1: First Meeting\nYui bumped into Kanna. 'Oh, sorry!' Kanna smiled, 'No problem! I'm Kanna.' Yui blushed."
+    chapter2_text = "Chapter 2: Shared Lunch\nThey ate lunch on the rooftop. Kanna shared her bento. Yui found herself watching Kanna more than eating."
+    dialogue_enhanced_story = f"{chapter1_text}\n\n{chapter2_text}" # Assume this is result after dialogue enhancement
+
+    # --- Test Title Generation (minimal) ---
     print("\n--- Testing Title Generation ---")
-    selected_title_for_tests = "Default Test Title"
     try:
-        generated_titles = generate_titles("highschool yuri", 1) # Generate 1 for brevity
-        if generated_titles and not any("Error generating title" in t for t in generated_titles) and api_key_present_and_real:
-            selected_title_for_tests = generated_titles[0]
-            print(f"Successfully generated title: {selected_title_for_tests}")
-        elif generated_titles:
-            print(f"Test run (title): Function returned or used placeholder: {generated_titles[0]}")
-            if not generated_titles[0].startswith("Error"):
-                 selected_title_for_tests = generated_titles[0] # Use placeholder if not an error
-        else:
-            print("Test run (title): No titles returned.")
-    except Exception as e:
-        print(f"Error during title generation test: {e}")
+        titles = generate_titles(test_genre, 1)
+        if titles and not titles[0].startswith("Error") and api_key_present_and_real: print(f"Generated title: {titles[0]}")
+        else: print(f"Title generation test (skipped/placeholder): {titles}")
+    except Exception as e: print(f"Title gen error: {e}")
 
-    # --- Test Outline Generation ---
-    print(f"\n--- Testing Outline Generation for title: '{selected_title_for_tests}' ---")
-    generated_outline_for_chapter_test = "Chapter 1: A Fateful Encounter\n- Main characters Yui and Misaki bump into each other in the school library, dropping their books. They share a brief, awkward but memorable moment."
+    # --- Test Outline Generation (minimal) ---
+    print("\n--- Testing Outline Generation ---")
     try:
-        outline_full = generate_outline(selected_title_for_tests, "highschool yuri", 2) # 2 chapters for test
-        if outline_full and not outline_full.startswith("Error") and api_key_present_and_real:
-            print(f"Successfully generated outline:\n{outline_full}")
-            # Extract first chapter description for next test if possible
-            first_chapter_desc = outline_full.split('\n\n')[0] if '\n\n' in outline_full else outline_full
-            if "Chapter 1" in first_chapter_desc:
-                 generated_outline_for_chapter_test = first_chapter_desc
-        elif outline_full:
-            print(f"Test run (outline): Function returned or used placeholder:\n{outline_full}")
-            # Try to use placeholder if not an error for chapter test
-            if not outline_full.startswith("Error"):
-                first_chapter_desc = outline_full.split('\n\n')[0] if '\n\n' in outline_full else outline_full
-                if "Chapter 1" in first_chapter_desc:
-                    generated_outline_for_chapter_test = first_chapter_desc
-        else:
-            print("Test run (outline): No outline returned.")
-    except Exception as e:
-        print(f"Error during outline generation test: {e}")
+        outline = generate_outline(test_title, test_genre, 1)
+        if outline and not outline.startswith("Error") and api_key_present_and_real: print(f"Generated outline (start): {outline[:100]}...")
+        else: print(f"Outline gen test (skipped/placeholder): {outline}")
+    except Exception as e: print(f"Outline gen error: {e}")
 
-    # --- Test Chapter Generation ---
-    print(f"\n--- Testing Chapter Generation for outline: '{generated_outline_for_chapter_test}' ---")
+    # --- Test Chapter Generation (minimal) ---
+    print("\n--- Testing Chapter Generation ---")
     try:
-        chapter_text = generate_chapter_text(
-            selected_title_for_tests,
-            "highschool yuri",
-            generated_outline_for_chapter_test,
-            overall_story_summary=f"A story about {selected_title_for_tests} focusing on the developing relationship between two high school girls.",
-            previous_chapters_summary="" # No previous chapters for this first test
-        )
-        if chapter_text and not chapter_text.startswith("Error") and api_key_present_and_real:
-            print("Successfully generated chapter text (first 200 chars):")
-            print(chapter_text[:200] + "...")
-        elif chapter_text:
-             print(f"Test run (chapter): Function returned or used placeholder. Output (first 200 chars):\n{chapter_text[:200]}...")
-        else:
-            print("Test run (chapter): No chapter text returned.")
+        chap_text = generate_chapter_text(test_title, test_genre, "Outline for a short chapter.", test_story_summary)
+        if chap_text and not chap_text.startswith("Error") and api_key_present_and_real: print(f"Generated chapter (start): {chap_text[:100]}...")
+        else: print(f"Chapter gen test (skipped/placeholder): {chap_text}")
+    except Exception as e: print(f"Chapter gen error: {e}")
+
+    # --- Test Dialogue Enhancement (minimal) ---
+    print("\n--- Testing Dialogue Enhancement ---")
+    try:
+        enhanced_dialogue = enhance_dialogue(chapter1_text, test_genre, test_char_summary, test_story_summary)
+        if enhanced_dialogue and enhanced_dialogue != chapter1_text and api_key_present_and_real: print(f"Enhanced dialogue (start): {enhanced_dialogue[:100]}...")
+        elif enhanced_dialogue == chapter1_text and api_key_present_and_real: print("Dialogue enhancement returned original (quality OK or no change).")
+        else: print(f"Dialogue enhance test (skipped/placeholder): {enhanced_dialogue}")
+    except Exception as e: print(f"Dialogue enhance error: {e}")
+
+    # --- Test Final Review ---
+    print(f"\n--- Testing Final Story Review for story (total chars: {len(dialogue_enhanced_story)}) ---")
+    try:
+        review_status, review_content = final_review_story(dialogue_enhanced_story, test_title, test_genre, test_char_summary, test_story_summary)
+        print(f"Review Status: {review_status}")
+        if review_status == "error":
+            print(f"Review Content (Error Message): {review_content}")
+        elif not api_key_present_and_real and review_status != "error": # If using placeholder due to no API key
+            print(f"Review Content (Placeholder/Skipped - first 150 chars): {review_content[:150]}...")
+        else: # Actual API call was made or attempted
+             print(f"Review Content (first 150 chars): {review_content[:150]}...")
+
+        if review_status == "revised" and api_key_present_and_real:
+            # Simple check: if revised, should be different from original
+            if review_content.strip() != dialogue_enhanced_story.strip() and len(review_content) > 0:
+                print("SUCCESS: Story was revised by the LLM.")
+            else:
+                print("NOTE: Story status is 'revised' but content is same as original or empty. Check LLM behavior.")
+        elif review_status == "approved" and api_key_present_and_real:
+            print("SUCCESS: Story was approved.")
+        elif review_status == "critique_provided" and api_key_present_and_real:
+             print("SUCCESS: Critique was provided.")
+
     except Exception as e:
-        print(f"Error during chapter generation test: {e}")
+        print(f"An error occurred during the final review test: {e}")
 
     print("\nllm_service.py tests concluded.")

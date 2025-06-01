@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+.env
+temp_pdfs_output/
+*.sqlite # If any dbs were planned

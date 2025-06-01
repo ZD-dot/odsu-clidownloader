@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Review - {{ title }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #5a5a5a; }
+        pre { background-color: #e9ecef; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; }
+        .button {
+            background-color: #28a745; color: white; padding: 10px 15px;
+            border: none; border-radius: 4px; cursor: pointer; text-decoration: none;
+            font-size: 16px; margin-top: 20px; display: inline-block;
+        }
+        .button:hover { background-color: #1e7e34; }
+        .button-back { background-color: #6c757d; margin-right:10px; }
+        .button-back:hover { background-color: #545b62; }
+        .flash-messages { list-style: none; padding: 0; }
+        .flash-messages li { padding: 10px; border-radius: 4px; margin-bottom:10px;}
+        .flash-messages .danger { background-color: #f8d7da; color: #721c24;}
+        .flash-messages .warning { background-color: #fff3cd; color: #856404;}
+        .flash-messages .success { background-color: #d4edda; color: #155724;}
+        .flash-messages .info { background-color: #cce5ff; color: #004085;}
+        .review-section { margin-top: 20px; padding:15px; border: 1px solid #eee; border-radius: 5px;}
+        .chapter { margin-bottom: 20px; }
+        .chapter-text { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Final AI Editor Review for: {{ title }}</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flash-messages">
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        <div class="review-section">
+            <h2>Review Outcome:
+                <strong style="text-transform: capitalize;">
+                    {{ review_status.replace('_', ' ') if review_status else 'Not Available' }}
+                </strong>
+            </h2>
+
+            {% if review_status == 'approved' %}
+                <p><strong>Editor's Approval Note:</strong></p>
+                <pre>{{ review_content }}</pre>
+                <p>The story is approved and ready for PDF generation.</p>
+            {% elif review_status == 'revised' %}
+                <p><strong>The AI editor has provided a revised version of the story:</strong></p>
+                {% if revised_chapters and revised_chapters|length > 0 %}
+                    {% for chapter in revised_chapters %}
+                        <div class="chapter">
+                            <h3>{{ chapter.title }}</h3>
+                            <div class="chapter-text">
+                                {{ chapter.text }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <pre>{{ review_content }}</pre> {# Fallback if revised_chapters structure isn't there #}
+                {% endif %}
+            {% elif review_status == 'critique_provided' %}
+                <p><strong>Editor's Critique/Suggestions:</strong></p>
+                <pre>{{ review_content }}</pre>
+                <p>You can proceed with the original story, or restart and try to incorporate this feedback.</p>
+            {% elif review_status == 'error' %}
+                <p><strong>An error occurred during the final review:</strong></p>
+                <pre>{{ review_content }}</pre>
+                <p>You can choose to proceed with the story version before this review attempt.</p>
+            {% else %}
+                <p>The final review process did not complete as expected. {{ review_content }}</p>
+            {% endif %}
+        </div>
+
+        <form action="{{ url_for('main.finalize_story') }}" method="post" style="display: inline;">
+             <button type="submit" class="button">Accept & Proceed to PDF</button>
+        </form>
+
+        <a href="{{ url_for('main.generate_chapters_page') }}" class="button button-back">Back to Story (Pre-Review)</a>
+        <a href="{{ url_for('main.index') }}" class="button button-back" style="background-color: #dc3545;">Start Over</a>
+
+    </div>
+</body>
+</html>

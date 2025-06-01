@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Light Novel: {{ title }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #5a5a5a; }
+        h2 { margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
+        .story-content { margin-top: 20px; }
+        .chapter { margin-bottom: 30px; }
+        .chapter-text { white-space: pre-wrap; /* Preserve formatting from LLM */ word-wrap: break-word; }
+        .button {
+            background-color: #28a745; color: white; padding: 10px 15px;
+            border: none; border-radius: 4px; cursor: pointer; text-decoration: none;
+            font-size: 16px; margin-top: 20px; display: inline-block;
+        }
+        .button:hover { background-color: #1e7e34; }
+        .button-back { background-color: #6c757d; margin-right:10px; }
+        .button-back:hover { background-color: #545b62; }
+        .flash-messages { list-style: none; padding: 0; }
+        .flash-messages .danger { background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom:10px;}
+        .flash-messages .warning { background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;}
+        .flash-messages .success { background-color: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom:10px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Your Light Novel: {{ title }}</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flash-messages">
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        <div class="story-content">
+            {% if story_chapters and story_chapters|length > 0 %}
+                {% for chapter in story_chapters %}
+                    <div class="chapter">
+                        <h2>{{ chapter.title }}</h2>
+                        <div class="chapter-text">
+                            {{ chapter.text }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>The story content could not be generated or is not available.</p>
+            {% endif %}
+        </div>
+
+        {% if story_chapters and story_chapters|length > 0 %}
+        <form action="{{ url_for('main.initiate_final_review') }}" method="post" style="display: inline;">
+            <button type="submit" class="button" style="background-color: #ffc107; color: black;">Proceed to Final AI Review</button>
+        </form>
+        {% endif %}
+
+        <a href="{{ url_for('main.generate_outline_page') }}" class="button button-back">Back to Outline</a>
+        <a href="{{ url_for('main.index') }}" class="button button-back">Start Over</a>
+
+    </div>
+</body>
+</html>

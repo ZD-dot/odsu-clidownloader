@@ -14,33 +14,95 @@
             font-size: 16px;
         }
         .button:hover { background-color: #0056b3; }
+        .options-group { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .options-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .options-group select, .options-group input[type="number"] {
+            width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        .flash-messages { list-style: none; padding: 0; margin-bottom: 15px;}
+        .flash-messages li { padding: 10px; border-radius: 4px; }
+        .flash-messages .danger { background-color: #f8d7da; color: #721c24;}
+        .flash-messages .warning { background-color: #fff3cd; color: #856404;}
+        .flash-messages .success { background-color: #d4edda; color: #155724;}
+        .flash-messages .info { background-color: #cce5ff; color: #004085;} /* Added info style */
     </style>
 </head>
 <body>
     <div class="container">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                <ul style="list-style: none; padding: 0;">
-                {% for category, message in messages %}
-                  <li style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom:10px;" class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-                </ul>
-              {% endif %}
-            {% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flash-messages">
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
         <h1>Welcome to the AI Light Novel Generator</h1>
         <p>Ready to create your own highschool yuri light novel?</p>
 
-        {% if session.status %}
-            <p>Current status: <strong>{{ session.status }}</strong></p>
-            {% if session.status == 'started' %}
-                <p>Next step would be title generation!</p>
-                <form action="{{ url_for('main.start_generation') }}" method="post" style="display: inline;">
-                    <button type="submit" class="button">Restart Generation Process</button>
-                </form>
+        <form action="{{ url_for('main.start_generation') }}" method="post">
+            <div class="options-group">
+                <h2>Customization Options (Stubs)</h2>
+
+                <label for="story_length">Story Length:</label>
+                <select name="story_length" id="story_length">
+                    <option value="short">Short (approx. 3 chapters)</option>
+                    <option value="medium" selected>Medium (approx. 5 chapters)</option>
+                    <option value="long">Long (approx. 7-10 chapters)</option>
+                </select>
+
+                <label for="detail_level">Level of Detail:</label>
+                <select name="detail_level" id="detail_level">
+                    <option value="low">Low (Concise descriptions)</option>
+                    <option value="medium" selected>Medium (Balanced descriptions)</option>
+                    <option value="high">High (Rich, vivid descriptions)</option>
+                </select>
+
+                <label for="narrative_pacing">Narrative Pacing:</label>
+                <select name="narrative_pacing" id="narrative_pacing">
+                    <option value="slow">Slow (Detailed build-up)</option>
+                    <option value="medium" selected>Medium (Standard pacing)</option>
+                    <option value="fast">Fast (Quick progression of events)</option>
+                </select>
+            </div>
+
+            {# Logic for showing Start or Continue button based on session status #}
+            {% set active_generation_statuses = ['titles_requested', 'titles_generated', 'title_selected', 'outline_generated', 'outline_confirmed', 'story_generated', 'story_approved_for_pdf', 'titles_error', 'outline_error', 'story_error'] %}
+            {% if session.status and session.status in active_generation_statuses %}
+                {# Don't show main start button if already in a process, show continue options below #}
+            {% else %}
+                 <button type="submit" class="button">Start Generating Novel</button>
             {% endif %}
-        {% else %}
-            <form action="{{ url_for('main.start_generation') }}" method="post">
-                <button type="submit" class="button">Start Generating Novel</button>
+        </form>
+
+        {% if session.status %}
+            <p style="margin-top:20px;">Current status: <strong>{{ session.status }}</strong></p>
+            {# Show appropriate continue button based on status #}
+            {% if session.status in ['titles_requested', 'titles_generated', 'titles_error'] %}
+                <a href="{{ url_for('main.generate_title_options') }}" class="button">Continue to Title Selection</a>
+            {% elif session.status == 'title_selected' %}
+                <a href="{{ url_for('main.generate_outline_page') }}" class="button">Continue to Outline Generation</a>
+            {% elif session.status in ['outline_generated', 'outline_error'] %}
+                <a href="{{ url_for('main.generate_outline_page') }}" class="button">Continue to Outline Review</a>
+            {% elif session.status == 'outline_confirmed' %}
+                <a href="{{ url_for('main.generate_chapters_page') }}" class="button">Continue to Chapter Generation</a>
+            {% elif session.status in ['story_generated', 'story_error'] %}
+                {# Assuming story_error is a valid status you might set #}
+                <a href="{{ url_for('main.generate_chapters_page') }}" class="button">Continue to Story Review</a>
+            {% elif session.status == 'story_approved_for_pdf' %}
+                <a href="{{ url_for('main.download_pdf_page') }}" class="button">Proceed to PDF Download</a>
+            {% endif %}
+
+            {# Always show restart button if there's any status #}
+            <form action="{{ url_for('main.start_generation') }}" method="post" style="display: inline-block; margin-left: 10px; margin-top:10px;">
+                {# This form will submit the default customization options again, or you could hide them on restart #}
+                <input type="hidden" name="story_length" value="medium"> {# Or pass current session values if desired #}
+                <input type="hidden" name="detail_level" value="medium">
+                <input type="hidden" name="narrative_pacing" value="medium">
+                <button type="submit" class="button" style="background-color: #dc3545;">Restart Generation Process (Clears Session)</button>
             </form>
         {% endif %}
     </div>

@@ -11,7 +11,8 @@ The AI Light Novel Generator is a web-based application designed to automaticall
 -   **Chapter Generation:** Expands the outline into full chapters with scenes and dialogue.
 -   **Dialogue Enhancement:** LLM reviews and refines dialogue within chapters.
 -   **Final Story Review:** LLM performs a final pass on the complete narrative for coherence and quality, potentially revising it or providing critique.
--   **Customization Stubs:** UI elements for story length, detail, and pacing (backend integration for these is a future refinement).
+-   **Functional Customization Options:** User selections for story length, level of detail, and narrative pacing now actively influence the LLM's generation process.
+-   **Basic Loading Indicators:** UI provides visual feedback during longer LLM operations.
 -   **Web-Based Interface:** Local web application for user interaction.
 -   **Session Management:** Maintains user progress through the generation steps.
 -   **PDF Output:** Converts the final approved novel into a downloadable PDF.
@@ -98,10 +99,10 @@ The Proof-of-Concept script allows testing the core LLM generation chain without
 
 -   **`core/llm_service.py`**: This is the heart of the AI generation. It contains:
     -   `generate_titles()`: Creates potential novel titles.
-    -   `generate_outline()`: Builds a story outline from a chosen title.
-    -   `generate_chapter_text()`: Writes full chapter content based on an outline segment, incorporating context from previous chapters.
-    -   `enhance_dialogue()`: Reviews and refines dialogue within generated chapter text.
-    -   `final_review_story()`: Performs a holistic review of the entire novel, potentially revising it or providing feedback.
+    -   `generate_outline()`: Builds a story outline. Now influenced by the user's 'Story Length' selection (short, medium, long) which adjusts the target number of chapters.
+    -   `generate_chapter_text()`: Writes full chapter content. Now actively uses 'Level of Detail' (low, medium, high) and 'Narrative Pacing' (slow, medium, fast) selections to guide the LLM's writing style for each chapter.
+    -   `enhance_dialogue()`: Reviews and refines dialogue. Prompts refined for better focus.
+    -   `final_review_story()`: Performs a holistic review. Prompts refined for more reliable status codes and content.
 -   **`core/output_formatter.py`**: Handles the conversion of the generated story into a PDF document using the `fpdf2` library.
 -   **`app/routes.py`**: Defines all web page routes and manages the user's journey through the novel generation process. It calls functions from `llm_service.py` and `output_formatter.py` based on user interactions and session state.
 -   **`run.py`**: The entry point to start the Flask web application.
@@ -117,4 +118,4 @@ The application uses a chained LLM approach:
 5.  **Final Review**: The entire concatenated story (after dialogue enhancement) is reviewed by the LLM, which can approve, critique, or revise it.
 6.  **PDF Conversion**: The final version of the story is converted to PDF.
 
-Customization options for story length, detail, and pacing are present in the UI but are not yet fully integrated into the LLM prompting logic. This is a planned area for future refinement.
+Customization options for story length, detail, and pacing are now actively integrated into the LLM prompting logic. Prompts for outline generation, dialogue enhancement, and final review have also been refined to improve output quality and consistency.

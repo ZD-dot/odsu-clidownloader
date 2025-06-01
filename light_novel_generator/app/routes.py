@@ -142,26 +142,21 @@ def generate_outline_page():
         return redirect(url_for('main.generate_title_options')) # Redirect to title selection if no title
 
     selected_title = session['selected_title']
+    # Retrieve story_length from session, defaulting to 'medium' if not found
+    story_length_setting = session.get('story_length', 'medium')
 
-    # Avoid re-generating if outline already exists in session (e.g., user refreshed page)
-    # However, for simplicity in this step, we can regenerate.
-    # A better approach might be:
-    # if 'generated_outline' in session and session.get('current_title_for_outline') == selected_title:
-    #    outline = session['generated_outline']
-    # else:
-    #    ... generate ...
-    #    session['current_title_for_outline'] = selected_title
-
+    # Optional: flash a message to confirm what setting is being used.
+    # flash(f"Generating outline for a '{story_length_setting}' length story.", "info")
 
     try:
-        # Assuming GENRE is defined globally in routes.py or fetched from session
-        outline = generate_outline(selected_title, GENRE, num_chapters=5) # Specify num_chapters
+        # Pass the story_length_setting to the LLM service function
+        outline = generate_outline(selected_title, GENRE, story_length=story_length_setting)
         session['generated_outline'] = outline
         session['status'] = 'outline_generated'
     except Exception as e:
-        flash(f"Error generating outline: {e}. Using a placeholder.", "danger")
-        outline = f"Placeholder outline for '{selected_title}' due to error.\nChapter 1: ...\nChapter 2: ...\nChapter 3: ..."
-        session['generated_outline'] = outline # Store placeholder
+        flash(f"Error generating outline (length: {story_length_setting}): {e}. Using a placeholder.", "danger")
+        outline = f"Placeholder outline for '{selected_title}' (length: {story_length_setting}) due to error.\nChapter 1: ...\nChapter 2: ...\nChapter 3: ..."
+        session['generated_outline'] = outline
         session['status'] = 'outline_error'
 
     return render_template('outline_display.html', title=selected_title, outline=outline)
@@ -201,12 +196,19 @@ def generate_chapters_page():
     overall_story_context = f"This is a {GENRE} light novel titled '{selected_title}'. The story should unfold according to the provided chapter outlines, maintaining narrative consistency."
 
     for i, chap_info in enumerate(parsed_chapters):
+        # Retrieve detail_level from session
+        detail_level_setting = session.get('detail_level', 'medium')
+        # Retrieve narrative_pacing from session
+        narrative_pacing_setting = session.get('narrative_pacing', 'medium')
+
         try:
-            print(f"Generating text for chapter: {chap_info['title']}") # Server log
+            print(f"Generating text for chapter: {chap_info['title']} with detail: {detail_level_setting}, pacing: {narrative_pacing_setting}") # Server log update
             chapter_text_content = generate_chapter_text(
                 title=selected_title,
                 genre=GENRE,
                 chapter_outline=chap_info['description'],
+                detail_level=detail_level_setting,
+                narrative_pacing=narrative_pacing_setting, # Pass the new parameter
                 overall_story_summary=overall_story_context,
                 previous_chapters_summary=previous_chapters_summary_text
             )

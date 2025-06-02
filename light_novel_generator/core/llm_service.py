@@ -15,9 +15,13 @@ genai.configure(api_key=api_key)
 # Initialize the generative model
 # For text generation, 'gemini-pro' is a common choice.
 # Safety settings can be adjusted if needed, but defaults are often fine to start.
-model = genai.GenerativeModel('gemini-1.5-flash-latest') # Updated model
+model = genai.GenerativeModel('gemini-2.0-flash-lite') # Updated model
 
 import re # Added for re.findall in test block
+import time # Add this line
+
+# Define the global delay constant under the imports
+LLM_CALL_DELAY_SECONDS = 2.5
 
 def generate_titles(genre: str, num_titles: int = 5) -> list[str]:
     """
@@ -32,6 +36,8 @@ def generate_titles(genre: str, num_titles: int = 5) -> list[str]:
     """
     prompt = f"Generate {num_titles} potential light novel titles for the genre: '{genre}'. The titles should be catchy and appropriate for the genre. Return only the list of titles, each on a new line, without numbering or any other surrounding text."
 
+    print(f"Introducing delay of {LLM_CALL_DELAY_SECONDS}s before LLM call for title generation...") # Optional: for logging/debugging
+    time.sleep(LLM_CALL_DELAY_SECONDS)
     try:
         response = model.generate_content(prompt)
         # Assuming the response text contains titles separated by newlines
@@ -64,6 +70,8 @@ def generate_outline(title: str, genre: str, story_length: str = "medium") -> st
 
     prompt = f"Generate a detailed story outline for a light novel titled '{title}' in the genre '{genre}'. "              f"The story should be '{story_length}' in length, covering approximately {num_chapters_target} chapters. "              f"For each chapter, provide a title line starting exactly with 'Chapter X: [Your Chapter Title]' (e.g., 'Chapter 1: The Accidental Meeting'). "              f"Immediately following the title line for each chapter, provide a multi-line summary of its key events, character development points, and setting details, with each point preferably on a new line starting with a hyphen '- '. "              f"Example of a single chapter's format:\n"              f"Chapter 1: The Spark\n"              f"- Main characters bump into each other in a crowded hallway.\n"              f"- Brief, awkward but memorable interaction.\n"              f"- One character drops a distinctive item, the other picks it up.\n\n"              f"Ensure the output consists *only* of the chapter titles and their summaries, formatted as requested, one chapter after another. Do not include any introductory or concluding text outside of the outline itself."
 
+    print(f"Introducing delay of {LLM_CALL_DELAY_SECONDS}s before LLM call for outline generation (length: {story_length})...") # Optional
+    time.sleep(LLM_CALL_DELAY_SECONDS)
     try:
         response = model.generate_content(prompt) # Assuming 'model' is initialized
         if response.parts:
@@ -118,6 +126,8 @@ def generate_chapter_text(title: str, genre: str, chapter_outline: str, detail_l
         f"The output should be only the chapter text itself, without any extra titles like 'Chapter X Text:'."
     )
 
+    print(f"Introducing delay of {LLM_CALL_DELAY_SECONDS}s before LLM call for chapter text (detail: {detail_level}, pacing: {narrative_pacing})...") # Optional
+    time.sleep(LLM_CALL_DELAY_SECONDS)
     try:
         response = model.generate_content(prompt) # Assuming 'model' is initialized
         if response.parts:
@@ -161,6 +171,8 @@ def enhance_dialogue(chapter_text: str, genre: str, characters_summary: str = "T
         f"Return the ENTIRE chapter text, with your dialogue enhancements seamlessly integrated. Do not add any commentary, analysis, or summary before or after the revised chapter text. Output only the complete, edited chapter."
     )
 
+    print(f"Introducing delay of {LLM_CALL_DELAY_SECONDS}s before LLM call for dialogue enhancement...") # Optional
+    time.sleep(LLM_CALL_DELAY_SECONDS)
     try:
         # Assuming 'model' is already initialized (e.g., model = genai.GenerativeModel('gemini-pro'))
         response = model.generate_content(prompt)
@@ -209,6 +221,8 @@ def final_review_story(full_story_text: str, title: str, genre: str, characters_
         f"Choose only ONE of these three response formats. Ensure your response starts precisely with 'STATUS: <status_code>'."
     )
 
+    print(f"Introducing delay of {LLM_CALL_DELAY_SECONDS}s before LLM call for final story review...") # Optional
+    time.sleep(LLM_CALL_DELAY_SECONDS)
     try:
         response = model.generate_content(prompt) # Assuming 'model' is initialized
         response_text = response.text.strip()
@@ -230,6 +244,13 @@ def final_review_story(full_story_text: str, title: str, genre: str, characters_
 
 if __name__ == '__main__':
     print("Initializing test for llm_service.py...")
+    # Add this new print statement here:
+    if 'LLM_CALL_DELAY_SECONDS' in globals() and LLM_CALL_DELAY_SECONDS > 0:
+        print(f"NOTE: LLM calls in this test suite include a {LLM_CALL_DELAY_SECONDS}s delay each for rate limit management.")
+        print("Test execution will be slower accordingly.")
+    else:
+        print("NOTE: No LLM call delays are active in this test suite.")
+
 
     # --- Environment Setup ---
     if not os.path.exists(".env") and not os.getenv("GEMINI_API_KEY"):
@@ -244,8 +265,8 @@ if __name__ == '__main__':
         print("INFO: GEMINI_API_KEY found. Attempting API calls.")
         try:
             genai.configure(api_key=current_api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash-latest') # Updated model
-            print("Gemini model re-initialized with gemini-1.5-flash-latest.")
+            model = genai.GenerativeModel('gemini-2.0-flash-lite') # Updated model
+            print("Gemini model re-initialized with gemini-2.0-flash-lite.") # Updated print message
             api_key_present_and_real = True
         except Exception as e: print(f"Error re-initializing Gemini model: {e}")
 

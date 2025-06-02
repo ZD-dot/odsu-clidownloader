@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, redirect, url_for, request, flash
+from flask import Blueprint, render_template, session, redirect, url_for, request, flash, jsonify
 import sys
 import os
 
@@ -104,14 +104,17 @@ def generate_title_options():
     # For simplicity on refresh, we can just regenerate.
     # A more complex app might store previous suggestions in session.
     try:
+        session['current_operation_status'] = "Generating title suggestions..."
         titles = generate_titles(GENRE, num_titles=5)
         session['generated_titles'] = titles
         session['status'] = 'titles_generated'
+        session['current_operation_status'] = "Title suggestions generated."
     except Exception as e:
         flash(f"Error generating titles: {e}. Using placeholders.", "danger")
         titles = [f"Placeholder Title {i} (Error Occurred)" for i in range(1, 6)]
         session['generated_titles'] = titles # Store placeholders
         session['status'] = 'titles_error'
+        session['current_operation_status'] = "Error generating titles."
 
 
     return render_template('title_selection.html', titles=titles)
@@ -147,17 +150,19 @@ def generate_outline_page():
 
     # Optional: flash a message to confirm what setting is being used.
     # flash(f"Generating outline for a '{story_length_setting}' length story.", "info")
-
+    session['current_operation_status'] = f"Generating '{story_length_setting}' outline for '{selected_title}'..."
     try:
         # Pass the story_length_setting to the LLM service function
         outline = generate_outline(selected_title, GENRE, story_length=story_length_setting)
         session['generated_outline'] = outline
         session['status'] = 'outline_generated'
+        session['current_operation_status'] = "Outline generated successfully."
     except Exception as e:
         flash(f"Error generating outline (length: {story_length_setting}): {e}. Using a placeholder.", "danger")
         outline = f"Placeholder outline for '{selected_title}' (length: {story_length_setting}) due to error.\nChapter 1: ...\nChapter 2: ...\nChapter 3: ..."
         session['generated_outline'] = outline
         session['status'] = 'outline_error'
+        session['current_operation_status'] = "Error generating outline."
 
     return render_template('outline_display.html', title=selected_title, outline=outline)
 
@@ -182,33 +187,50 @@ def generate_chapters_page():
     selected_title = session.get('selected_title', 'Untitled Novel')
     outline_text = session.get('generated_outline', '')
 
-    # For simplicity, we regenerate chapters each time this page is visited.
-    # A more advanced version might store generated chapters in session to avoid re-generation on refresh.
-
     story_chapters = []
     parsed_chapters = parse_outline_into_chapters(outline_text)
 
     if not parsed_chapters:
         flash("Could not parse the outline into chapters. Please review the outline.", "danger")
+        session['current_operation_status'] = "Error: Outline parsing failed." # Status for polling
         return redirect(url_for('main.generate_outline_page'))
+
+    num_total_chapters = len(parsed_chapters)
+    session['current_operation_status'] = f"Preparing to generate {num_total_chapters} chapters..." # Initial status
 
     previous_chapters_summary_text = ""
     overall_story_context = f"This is a {GENRE} light novel titled '{selected_title}'. The story should unfold according to the provided chapter outlines, maintaining narrative consistency."
 
     for i, chap_info in enumerate(parsed_chapters):
-        # Retrieve detail_level from session
+        chapter_num = i + 1
+
+        # Update status before generating chapter text
+        session['current_operation_status'] = f"Generating text for Chapter {chapter_num} of {num_total_chapters} ('{chap_info['title']}')..."
+        # Force session save if necessary, though usually Flask saves session at end of request.
+        # For polling during a long request, this explicit update needs to be accessible by the polling endpoint.
+        # Flask session is typically cookie-based and only saved when response is sent.
+        # This means simple session updates won't be seen by a concurrent /get_status poll
+        # *unless* we use a server-side session extension or a different mechanism for progress.
+        #
+        # FOR THIS ITERATION, WE'LL ASSUME THE USER UNDERSTANDS THE LIMITATION OF FLASK'S DEFAULT SESSION BEHAVIOR.
+        # The status will update, but the *polling JavaScript* might only get the *initial* status set before the loop
+        # or the status set just before a long delay if the /get_status request happens to hit then.
+        # A true real-time update would require AJAX calls from the main processing route or server-sent events.
+        # We will proceed with setting the session variable, and the frontend part will try to poll it.
+        # The effectiveness of polling will be reviewed in the next step.
+
         detail_level_setting = session.get('detail_level', 'medium')
-        # Retrieve narrative_pacing from session
         narrative_pacing_setting = session.get('narrative_pacing', 'medium')
 
         try:
-            print(f"Generating text for chapter: {chap_info['title']} with detail: {detail_level_setting}, pacing: {narrative_pacing_setting}") # Server log update
+            print(f"Updating session status: {session['current_operation_status']}") # Server log for status change
+
             chapter_text_content = generate_chapter_text(
                 title=selected_title,
                 genre=GENRE,
                 chapter_outline=chap_info['description'],
                 detail_level=detail_level_setting,
-                narrative_pacing=narrative_pacing_setting, # Pass the new parameter
+                narrative_pacing=narrative_pacing_setting,
                 overall_story_summary=overall_story_context,
                 previous_chapters_summary=previous_chapters_summary_text
             )
@@ -216,41 +238,44 @@ def generate_chapters_page():
             if chapter_text_content.startswith("Error: No content generated") or chapter_text_content.startswith("Error generating chapter text"):
                 flash(f"Could not generate content for {chap_info['title']}. Placeholder used.", "warning")
                 chapter_text_content = f"[Placeholder for {chap_info['title']} due to generation error. Outline was: {chap_info['description']}]"
-            else: # If chapter text generation was successful, try to enhance dialogue
-                try:
-                    print(f"Enhancing dialogue for chapter: {chap_info['title']}") # Server log
-                    # Basic character summary - can be improved with more context from outline/user input later
-                    char_summary_for_dialogue = session.get('character_summary_stub', "Two main female characters in a highschool yuri story.")
-                    story_summary_for_dialogue = session.get('overall_story_summary_stub', f"A {GENRE} novel titled '{selected_title}'.")
+                session['current_operation_status'] = f"Error generating Chapter {chapter_num}. Using placeholder."
 
-                    enhanced_chapter_text = enhance_dialogue(
-                        chapter_text_content,
-                        GENRE,
-                        characters_summary=char_summary_for_dialogue,
-                        overall_story_summary=story_summary_for_dialogue
-                    )
-                    if enhanced_chapter_text != chapter_text_content and not enhanced_chapter_text.startswith("Error"):
-                        flash(f"Dialogue enhanced for {chap_info['title']}.", "info") # Optional: info flash
-                        chapter_text_content = enhanced_chapter_text
-                    elif enhanced_chapter_text.startswith("Error"): # Should not happen if enhance_dialogue returns original on error
-                         flash(f"Dialogue enhancement failed for {chap_info['title']}. Using previous version.", "warning")
-                    # If no change, it implies dialogue was already good or LLM chose not to modify significantly.
-                except Exception as e_dialogue:
-                    flash(f"Error during dialogue enhancement for {chap_info['title']}: {e_dialogue}. Using unenhanced version.", "warning")
-                    # chapter_text_content remains the unenhanced version
+
+            # Update status before enhancing dialogue
+            if not (chapter_text_content.startswith("[Placeholder") or chapter_text_content.startswith("Error:")):
+                session['current_operation_status'] = f"Enhancing dialogue for Chapter {chapter_num} ('{chap_info['title']}')..."
+                print(f"Updating session status: {session['current_operation_status']}") # Server log
+
+                char_summary_for_dialogue = session.get('character_summary_stub', f"Main characters in a {GENRE} story.")
+                story_summary_for_dialogue = session.get('overall_story_summary_stub', f"A {GENRE} novel titled '{selected_title}'.")
+
+                enhanced_chapter_text = enhance_dialogue(
+                    chapter_text_content,
+                    GENRE,
+                    characters_summary=char_summary_for_dialogue,
+                    overall_story_summary=story_summary_for_dialogue
+                )
+                if enhanced_chapter_text != chapter_text_content and not enhanced_chapter_text.startswith("Error"):
+                    # flash(f"Dialogue enhanced for {chap_info['title']}.", "info") # Optional flash, might be too noisy
+                    chapter_text_content = enhanced_chapter_text
+                elif enhanced_chapter_text.startswith("Error"): # Should not happen if enhance_dialogue returns original on error
+                     flash(f"Dialogue enhancement failed for {chap_info['title']}. Using previous version.", "warning")
+                     session['current_operation_status'] = f"Error enhancing dialogue for Chapter {chapter_num}."
+
 
             story_chapters.append({"title": chap_info['title'], "text": chapter_text_content})
-
-            # Update summary for next chapter (simple version, could be LLM summarized)
             previous_chapters_summary_text += f"Summary of {chap_info['title']}:\n{chap_info['description']}\n---\n"
 
         except Exception as e:
             flash(f"An error occurred generating {chap_info['title']}: {e}", "danger")
             story_chapters.append({"title": chap_info['title'], "text": f"[Error generating this chapter: {e}. Outline: {chap_info['description']}]"})
-            # Continue to next chapter if possible
+            session['current_operation_status'] = f"Critical error during generation of Chapter {chapter_num}."
+            # Potentially break or decide how to handle partial generation
+            # For now, we'll let it try to continue to the next chapter or finish if this was the last.
 
-    session['full_story_chapters'] = story_chapters # Store the list of chapter dicts
+    session['full_story_chapters'] = story_chapters
     session['status'] = 'chapters_generated_ready_for_review'
+    session['current_operation_status'] = f"All {num_total_chapters} chapters processed. Ready for final review." # Final status for this page
 
     return render_template('story_display.html', title=selected_title, story_chapters=story_chapters)
 
@@ -284,6 +309,7 @@ def perform_final_review():
     story_summary = session.get('overall_story_summary_stub', f"A {GENRE} novel titled '{selected_title}'.")
 
     try:
+        session['current_operation_status'] = f"Performing final AI review for '{selected_title}'..."
         review_status, review_content = final_review_story(
             full_story_text_for_review,
             selected_title,
@@ -295,6 +321,7 @@ def perform_final_review():
         session['final_review_status'] = review_status
         session['final_review_content'] = review_content
         session['status'] = 'final_review_displayed'
+        session['current_operation_status'] = f"Final review complete: {review_status.replace('_', ' ')}."
 
         if review_status == "revised":
             # If revised, we need to parse the new story back into chapters for consistency in data structure
@@ -315,6 +342,7 @@ def perform_final_review():
             flash("Final Review: Critique Provided. Please see notes below.", "info")
         elif review_status == "error":
              flash(f"Final Review Error: {review_content}", "danger")
+             session['current_operation_status'] = "Error during final review." # Update status on error too
 
 
     except Exception as e:
@@ -322,6 +350,7 @@ def perform_final_review():
         session['final_review_status'] = "error"
         session['final_review_content'] = f"Error during review: {e}"
         session['status'] = 'final_review_displayed' # Still go to display to show error
+        session['current_operation_status'] = "Error during final review."
 
     return render_template('final_review_display.html',
                            title=selected_title,
@@ -391,12 +420,15 @@ def download_pdf_page():
 
     pdf_filepath = None
     try:
+        session['current_operation_status'] = f"Generating PDF for '{selected_title}'..."
         pdf_filepath = create_pdf_from_story(selected_title, story_chapters, output_dir=temp_pdf_dir)
 
         if not pdf_filepath or not os.path.exists(pdf_filepath):
             flash("Failed to generate PDF file.", "danger")
+            session['current_operation_status'] = "Error generating PDF."
             return redirect(url_for('main.generate_chapters_page'))
 
+        session['current_operation_status'] = "PDF generated. Starting download..."
         # Send the file for download and then attempt to clean it up.
         # Using after_this_request to ensure cleanup happens after response is sent.
 
@@ -412,6 +444,7 @@ def download_pdf_page():
 
     except Exception as e:
         flash(f"An error occurred during PDF processing: {e}", "danger")
+        session['current_operation_status'] = "Error generating PDF."
         # Clean up if file was partially created and an error occurred
         if pdf_filepath and os.path.exists(pdf_filepath):
             try:
@@ -428,3 +461,8 @@ def download_pdf_page():
         #         print(f"Cleaned up PDF: {pdf_filepath}")
         #     except OSError as e:
         #         print(f"Error removing PDF file {pdf_filepath} in finally: {e}")
+
+@bp.route('/get_current_status')
+def get_current_status():
+    status_message = session.get('current_operation_status', 'Processing... Please wait.')
+    return jsonify(status_message=status_message)

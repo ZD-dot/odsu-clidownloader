@@ -11,7 +11,7 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-text">
             <div class="spinner"></div>
-            Processing your request... Please wait.
+            <span class="status-message-dynamic">Processing your request... Please wait.</span>
         </div>
     </div>
 
@@ -34,14 +34,66 @@
     </div>
 
     <script>
-        function showLoading() {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) {
-                overlay.style.display = 'flex';
+    let statusPollInterval = null; // Variable to hold the interval ID
+
+    function updateLoadingMessage(message) {
+        const loadingTextElement = document.querySelector('#loadingOverlay .loading-text .status-message-dynamic');
+        if (loadingTextElement) {
+            loadingTextElement.textContent = message;
+        } else { // Fallback if the dedicated span isn't there, update the whole text div (less ideal)
+            const mainLoadingText = document.querySelector('#loadingOverlay .loading-text');
+            if (mainLoadingText && mainLoadingText.firstChild.nodeType === Node.ELEMENT_NODE && mainLoadingText.firstChild.classList.contains('spinner')) {
+                 // Try to preserve spinner, update text content around it
+                 // This is a bit hacky; ideally, the status message has its own container.
+                 // For now, let's create a specific span for the message.
             }
         }
+    }
 
-        document.querySelectorAll('form').forEach(form => {
+    async function fetchAndUpdateStatus() {
+        try {
+            const response = await fetch("{{ url_for('main.get_current_status') }}");
+            if (!response.ok) {
+                // console.error("Failed to fetch status:", response.status);
+                // updateLoadingMessage("Still processing..."); // Or a generic error
+                return;
+            }
+            const data = await response.json();
+            if (data && data.status_message) {
+                updateLoadingMessage(data.status_message);
+            }
+        } catch (error) {
+            // console.error("Error fetching status:", error);
+            // updateLoadingMessage("Checking status..."); // Or a generic error
+        }
+    }
+
+    function startStatusPolling() {
+        if (statusPollInterval) {
+            clearInterval(statusPollInterval); // Clear existing interval if any
+        }
+        fetchAndUpdateStatus(); // Fetch immediately once
+        statusPollInterval = setInterval(fetchAndUpdateStatus, 2000); // Poll every 2 seconds
+    }
+
+    function stopStatusPolling() {
+        if (statusPollInterval) {
+            clearInterval(statusPollInterval);
+            statusPollInterval = null;
+        }
+    }
+
+    function showLoading() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+            startStatusPolling(); // Start polling when loading is shown
+        }
+    }
+
+    // Existing event listeners for forms and anchors to call showLoading()
+    // This part remains the same as implemented in the previous loading indicator step
+    document.querySelectorAll('form').forEach(form => {
             const action = form.getAttribute('action');
             const longRunningActions = [
                 '/start',

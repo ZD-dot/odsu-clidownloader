@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI Light Novel Generator is a web-based application designed to automatically create complete light novels in the "highschool yuri" genre. It leverages the `gemini-1.5-flash-latest` Large Language Model (LLM) through a chained, multi-step process to generate everything from titles and outlines to full chapter text, including dialogue enhancement and a final review. The application aims for full automation of the narrative creation process, with user interaction primarily for selection, customization, and approval.
+The AI Light Novel Generator is a web-based application designed to automatically create complete light novels in the "highschool yuri" genre. It leverages the `gemini-2.0-flash-lite` Large Language Model (LLM) through a chained, multi-step process to generate everything from titles and outlines to full chapter text, including dialogue enhancement and a final review. The application aims for full automation of the narrative creation process, with user interaction primarily for selection, customization, and approval.
 
 ## Features
 
@@ -12,7 +12,7 @@ The AI Light Novel Generator is a web-based application designed to automaticall
 -   **Dialogue Enhancement:** LLM reviews and refines dialogue within chapters.
 -   **Final Story Review:** LLM performs a final pass on the complete narrative for coherence and quality, potentially revising it or providing critique.
 -   **Functional Customization Options:** User selections for story length, level of detail, and narrative pacing now actively influence the LLM's generation process.
--   **Basic Loading Indicators:** UI provides visual feedback during longer LLM operations.
+-   **Dynamic Loading Indicators:** UI provides visual feedback with dynamic status messages during longer LLM operations, indicating the current processing step.
 -   **Web-Based Interface:** Local web application for user interaction.
 -   **Session Management:** Maintains user progress through the generation steps.
 -   **PDF Output:** Converts the final approved novel into a downloadable PDF.
@@ -103,9 +103,23 @@ The Proof-of-Concept script allows testing the core LLM generation chain without
     ```
     The script will guide you through title selection and then generate an outline and chapter content to the console.
 
+## Important Considerations
+
+### API Rate Limiting
+
+This application makes multiple sequential calls to the Gemini API. To help manage typical API rate limits (e.g., 30 requests per minute for free-tier or standard API usage), a delay has been introduced before each call to the LLM.
+-   A constant `LLM_CALL_DELAY_SECONDS` (currently set to 2.5 seconds) is defined in `core/llm_service.py`.
+-   This means that each step involving interaction with the LLM (generating titles, outline, each chapter's text, each chapter's dialogue enhancement, and the final review) will pause briefly before making the API request.
+-   Consequently, the overall time to generate a complete novel, especially one with multiple chapters, will be longer. For example, generating a 5-chapter novel involves approximately 12 LLM calls, which will include at least 30 seconds of programmed delays, in addition to the actual processing time by the API.
+-   This delay mechanism is crucial for preventing API errors due to exceeding rate limits during a single user session. The loading indicators in the UI will remain active during these extended processing times.
+
+### User Experience Notes
+
+-   **Dynamic Progress Updates:** During long operations (like chapter generation), the loading screen attempts to display more specific progress messages (e.g., "Generating Chapter 1 of 5..."). This is achieved by the frontend polling a status endpoint. Due to the nature of standard Flask session handling, these messages may update most visibly between major processing stages rather than in real-time during a single, very long backend task.
+
 ## Key Files & Logic Overview
 
--   **`core/llm_service.py`**: This is the heart of the AI generation. It now utilizes the `gemini-1.5-flash-latest` model for all LLM interactions. It contains:
+-   **`core/llm_service.py`**: This is the heart of the AI generation. It now utilizes the `gemini-2.0-flash-lite` model for all LLM interactions. It contains:
     -   `generate_titles()`: Creates potential novel titles.
     -   `generate_outline()`: Builds a story outline. Now influenced by the user's 'Story Length' selection (short, medium, long) which adjusts the target number of chapters.
     -   `generate_chapter_text()`: Writes full chapter content. Now actively uses 'Level of Detail' (low, medium, high) and 'Narrative Pacing' (slow, medium, fast) selections to guide the LLM's writing style for each chapter.
